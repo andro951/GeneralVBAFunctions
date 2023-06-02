@@ -1,0 +1,628 @@
+Function DisableUpdating()
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+End Function
+
+Function EnableUpdating()
+    Application.EnableEvents = True
+    Application.Calculation = xlCalculationAutomatic
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+End Function
+
+Function ArrLen(arr)
+    If IsEmpty(arr) Then
+        ArrLen = 0
+        Exit Function
+    End If
+    ArrLen = UBound(arr) - LBound(arr) + 1
+End Function
+
+Function AddToArr(arr, newValue)
+    l = ArrLen(arr)
+    ReDim Preserve arr(l + 1)
+    arr(l) = newValue
+End Function
+
+Function SheetExists(shtName, Optional ByRef sheetNum = 0)
+    numberOfSheets = ThisWorkbook.Sheets.Count
+    For sheetNum = 1 To numberOfSheets Step 1
+        If ThisWorkbook.Sheets(sheetNum).name = shtName Then
+            SheetExists = True
+            Exit Function
+        End If
+    Next
+    sheetNum = sheetNum - 1
+    SheetExists = False
+End Function
+
+Function GetSheetIfExists(shtName)
+    sheetNum = 0
+    If SheetExists(shtName, sheetNum) Then
+        Set GetSheetIfExists = ThisWorkbook.Sheets(sheetNum)
+    End If
+End Function
+
+Function GetNextRow(sht, Optional columnNum = 1)
+    usedRowCount = sht.UsedRange.Rows.Count
+    If usedRowCount > 1 Or Not (sht.Cells(1, columnNum) = "") Then
+        GetNextRow = usedRowCount + 1
+    Else
+        GetNextRow = 1
+    End If
+End Function
+
+Function GetOrMakeNewSheet(shtName, Optional clearContents = False)
+    sheetNum = 0
+    If Not (SheetExists(shtName, sheetNum)) Then
+        ThisWorkbook.Sheets.Add After:=ThisWorkbook.Sheets(sheetNum)
+        sheetNum = sheetNum + 1
+        ThisWorkbook.Sheets(sheetNum).name = shtName
+        Set GetOrMakeNewSheet = ThisWorkbook.Sheets(sheetNum)
+    Else
+        Set GetOrMakeNewSheet = ThisWorkbook.Sheets(sheetNum)
+        If clearContents Then
+            GetOrMakeNewSheet.Cells.clearContents
+        End If
+    End If
+End Function
+
+Function TryGetIndexOf(arr, val, ByRef index)
+    arrLength = ArrLen(arr)
+    For i = 0 To arrLength - 1 Step 1
+        arrValue = arr(i)
+        If arrValue = val Then
+            index = i
+            TryGetIndexOf = True
+            Exit Function
+        End If
+    Next
+    index = -1
+    TryGetIndexOf = False
+End Function
+
+Function TryRemoveValue(ByRef arr, val)
+    arrLength = ArrLen(arr)
+    If Not (TryGetIndexOf(arr, val, index)) Then
+        Exit Function
+    End If
+    If arrLength <= 1 Then
+        Erase arr
+        Exit Function
+    End If
+    Dim newArr()
+    ReDim newArr(arrLength - 2)
+    newIndex = 0
+    For i = 0 To arrLength - 1
+        If Not (i = index) Then
+            newArr(newIndex) = arr(i)
+            arr(newIndex) = newArr(newIndex)
+            newIndex = newIndex + 1
+        End If
+    Next
+    ReDim Preserve arr(arrLength - 2)
+    TryRemoveValue = True
+End Function
+
+Function EncodeSheetName(sheetName, encodeNumber, Optional original = False)
+    m = GetMaxSheetNameLength
+    originalString = GetOriginalString
+    oLength = Len(originalString)
+    maxLength = m
+    If original Then
+        maxLength = m - oLength
+    End If
+    shtNameLength = Len(sheetName)
+    If shtNameLength > maxLength Then
+        encodeNumberString = Format$(encodeNumber, "0000")
+        eLength = Len(encodeNumberString)
+        If original Then
+            EncodeSheetName = Mid(sheetName, 1, m - eLength - 1 - oLength) & encodeNumberString & " " & originalString
+        Else
+            EncodeSheetName = Mid(sheetName, 1, m - eLength - 1) & encodeNumberString & " "
+        End If
+    Else
+        If original Then
+            EncodeSheetName = sheetName & originalString
+        Else
+            EncodeSheetName = sheetName
+        End If
+    End If
+End Function
+
+Function DecodeSheetName(encodedName, sheetNames)
+    originalString = GetOriginalString
+    oLength = Len(originalString)
+    eLength = Len(encodedName)
+    actualLength = eLength
+    nameNoOrig = encodedName
+    endOfName = Mid(encodedName, eLength - oLength + 1, oLength)
+    If endOfName = originalString Then
+        actualLength = actualLength - oLength
+        nameNoOrig = Mid(encodedName, 1, actualLength)
+    End If
+    newEndOfName = Mid(encodedName, actualLength, 1)
+    If newEndOfName = " " Then
+        numString = Mid(encodedName, actualLength - 4, 4)
+        sheetNameIndex = CInt(numString) - 1
+        DecodeSheetName = sheetNames(sheetNameIndex)
+    Else
+        DecodeSheetName = nameNoOrig
+    End If
+End Function
+
+Function ArrFromRange(arr, rng As Range)
+    c = rng.Count
+    ReDim arr(c - 1)
+    i = 0
+    For Each cell In rng
+        arr(i) = cell
+        i = i + 1
+    Next
+End Function
+
+Function CharInString(s, chr)
+    For i = 1 To Len(s) Step 1
+        c = Mid(s, i, 1)
+        If c = chr Then
+            CharInString = True
+            Exit Function
+        End If
+    Next
+    CharInString = False
+End Function
+
+Function ConvertAlpha(num, Optional capital = True)
+    If capital Then
+        s = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    Else
+        s = "abcdefghijklmnopqrstuvwxyz"
+    End If
+    If num > 0 And num < 27 Then
+        ConvertAlpha = Mid(s, num, 1)
+    Else
+        ConvertAlpha = ""
+    End If
+End Function
+
+Function ConvertInt(char)
+    If Not (IsNumeric(char)) Then
+        s = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        c = UCase(char)
+        For i = 1 To 26 Step 1
+            If Mid(s, i, 1) = c Then
+                ConvertInt = i
+                Exit Function
+            End If
+        Next
+        ConvertInt = 0
+    Else
+        ConvertInt = char
+    End If
+End Function
+
+Function FirstBlank(s)
+    FirstBlank = 0
+    For i = 1 To Len(s) Step 1
+        If Mid(s, i, 1) = " " Then
+            FirstBlank = i
+            Exit For
+        End If
+    Next
+End Function
+
+Function LastBlank(s)
+    LastBlank = 0
+    For i = Len(s) To 1 Step -1
+        If Mid(s, i, 1) = " " Then
+            LastBlank = i
+            Exit For
+        End If
+    Next
+End Function
+
+'Folder_Functions \/
+
+Function FileExists(filePath, Optional folder = False)
+    'MsgBox Dir(filePath)
+    If folder Then
+        FileExists = Dir(filePath, vbDirectory) <> ""
+    Else
+        FileExists = Dir(filePath) <> ""
+    End If
+End Function
+
+Function DeleteFile(filePath)
+    If FileExists(filePath) Then
+        Kill (filePath)
+    End If
+End Function
+
+Function MakeBackup(filePath)
+    folderPath = GetFolderFromPath(filePath)
+    backupFolderPath = folderPath & "backups\"
+    'MsgBox backUpFolderPath
+    CheckOrMakeFolder (backupFolderPath)
+    Filename = GetFileNameFromPath(filePath)
+    backupFilePath = backupFolderPath & Filename
+    backupFilePathDateTime = GetTodayBackupFilePath(backupFilePath)
+    On Error GoTo copyFailed
+    FileCopy filePath, backupFilePathDateTime
+    MakeBackup = True
+    Exit Function
+copyFailed:
+    MakeBackup = False
+    MsgBox "Failed to make a backup because the file is open"
+End Function
+
+Function CheckOrMakeFolder(filePath)
+    folderPath = GetFolderFromPath(filePath)
+    folderExisted = True
+    'folderNoSlash = Mid(folderPath, 1, Len(folderPath) - 1)
+    'MsgBox folderPath & chr(13) & folderNoSlash
+    If Not (FileExists(folderPath, True)) Then
+        'MsgBox folderPath
+        MkDir folderPath
+        folderExisted = False
+    End If
+    CheckOrMakeFolder = folderExisted
+End Function
+
+Function OpenOrFind(filePath)
+    sheetIsOpen = False
+    For Each wkbk In Workbooks
+        'MsgBox "wkbk.Name: " & wkbk.Name
+        wkbkname = GetFileNameFromPath(filePath)
+        If wkbk.Name = wkbkname Then
+            Set OpenOrFind = wkbk
+            wkbkIsOpen = True
+            Exit For
+        End If
+    Next
+    If Not (wkbkIsOpen) Then
+        Set OpenOrFind = Workbooks.Open(filePath)
+    End If
+End Function
+
+Function OpenOrFindFolder(folderPath)
+    folderPathNoSlash = Mid(folderPath, 1, Len(folderPath) - 1)
+    folderIsOpen = False
+    Set windowsShell = CreateObject("Shell.Application")
+    For Each Wnd In windowsShell.Windows
+        n = Wnd.Name
+        If n = "File Explorer" Then
+            p = Wnd.document.folder.self.Path
+            If p = folderPathNoSlash Then
+                folderIsOpen = True
+                
+                'Application.FileDialog(msoFileDialogFolderPicker).Show
+                'Wnd.document.folder.self.Select
+                Exit For
+            End If
+        End If
+    Next
+    If Not (folderIsOpen) Then
+        Application.ThisWorkbook.FollowHyperlink Address:=folderPath, NewWindow:=True
+    End If
+End Function
+
+Function GetFileNameFromPath(filePath, Optional includeFileType = True)
+    s = HalfString(filePath, FindString(filePath, "\"))
+    If Not (includeFileType) Then
+        s = HalfString(s, FindString(s, "."), False)
+    End If
+    GetFileNameFromPath = s
+End Function
+
+Function GetFolderFromPath(filePath, Optional numberOfFolders = 1)
+    s = filePath
+    For i = 1 To numberOfFolders Step 1
+        s = HalfString(s, FindString(s, "\"), False)
+    Next
+    GetFolderFromPath = s & "\"
+End Function
+
+Function Insert(s1, point, s2, Optional after = False, Optional addSpace = True)
+    s1Length = Len(s1)
+    If after Then
+        point = point + 1
+    End If
+    If point < 1 Then
+        If addSpace Then
+            Insert = s2 & " " & s1
+        Else
+            Insert = s2 & s1
+        End If
+    ElseIf point <= s1Length Then
+        firstHalf = Mid(s1, 1, point - 1)
+        secondHalf = Mid(s1, point)
+        If addSpace Then
+            Insert = firstHalf & " " & s2 & secondHalf
+        Else
+            Insert = firstHalf & s2 & secondHalf
+        End If
+    Else
+        If addSpace Then
+            Insert = s1 & " " & s2
+        Else
+            Insert = s1 & s2
+        End If
+    End If
+End Function
+
+Function HalfString(s, point, Optional after = True)
+    If after Then
+        hString = Mid(s, point + 1)
+    Else
+        sLength = Len(s)
+        hString = Mid(s, 1, point - 1)
+    End If
+    HalfString = hString
+End Function
+
+Function AddToFileName(filePath, addString)
+    point = FindString(filePath, ".")
+    newFilePath = Insert(filePath, point, addString)
+    AddToFileName = newFilePath
+End Function
+
+Function FindString(s, stringToFind)
+    s2Length = Len(stringToFind)
+    sLength = Len(s)
+    For i = sLength - s2Length + 1 To 1 Step -1
+        matchString = Mid(s, i, s2Length)
+        If matchString = stringToFind Then
+            FindString = i
+            'MsgBox "wkbkName: " & wkbkName
+            Exit Function
+        End If
+    Next
+    FindString = 0
+End Function
+
+Function GetTodayBackupFilePath(filePath)
+    n = Now()
+    d = getDate(n)
+    datePath = AddToFileName(filePath, d)
+    If FileExists(datePath) Then
+        t = Format(Time, "hhmm ss")
+        datePath = AddToFileName(datePath, t)
+    End If
+    GetTodayBackupFilePath = datePath
+End Function
+
+Sub openFolder()
+    Set master = ThisWorkbook
+    buttonCaption = master.ActiveSheet.Buttons(Application.Caller).Caption
+    r = Mid(buttonCaption, Len(buttonCaption), 1)
+    filePath = master.ActiveSheet.Cells(r, 3)
+    folderPath = GetFolderFromPath(filePath)
+    OpenOrFindFolder (folderPath)
+End Sub
+
+Sub backup()
+    Set master = ThisWorkbook
+    buttonCaption = master.ActiveSheet.Buttons(Application.Caller).Caption
+    r = Mid(buttonCaption, Len(buttonCaption), 1)
+    filePath = master.ActiveSheet.Cells(r, 3)
+    MakeBackup (filePath)
+End Sub
+
+Function getDate(dateInput)
+    mAbrs = Array("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+    Dim dS As String
+    ms = mAbrs(Month(dateInput) - 1)
+    d = Day(dateInput)
+    If d < 10 Then
+        dS = 0 & d
+    Else
+        dS = d
+    End If
+    yS = Mid(CStr(Year(dateInput)), 3, 2)
+    getDate = dS + ms + yS
+End Function
+
+'Folder_Functions /\
+
+Function getMonth(dateInput)
+    mAbrs = Array("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+    ms = mAbrs(Month(dateInput) - 1)
+    yS = Mid(CStr(Year(dateInput)), 3, 2)
+    getMonth = ms + yS
+End Function
+
+Function getMonthYear(dateInput)
+    monthAbreviations = Array("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+    monthString = monthAbreviations(Month(dateInput) - 1)
+    yearString = Mid(CStr(Year(dateInput)), 3, 2)
+    getMonthYear = monthString + "-" + yearString
+End Function
+
+Function getMonthYearRev(dateInput, Optional rev = 0)
+    If rev > 0 Then
+        revString = " REV-" + CStr(rev)
+    End If
+    getMonthYearRev = getMonthYear(dateInput) + revString
+End Function
+
+Function dayToString(dayInt)
+    If dayInt < 10 Then
+        dayToString = "0"
+    End If
+    dayToString = dayToString + CStr(dayInt)
+End Function
+
+Function toMilitaryTime(hour, Optional minute = 0)
+    toMilitaryTime = dayToString(hour) + dayToString(minute)
+End Function
+
+Function getDay(weekdayInt)
+    weekdayNames = Array("SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY")
+    getDay = weekdayNames(weekdayInt - 1)
+End Function
+
+Function copyArray(orig, copy)
+    s = arrLength(orig)
+    ReDim copy(s)
+    For i = 0 To s - 1
+        copy(i) = orig(i)
+    Next
+End Function
+
+Function findColumnLabel(sheet, label, Optional rowNum = 1)
+    i = rowNum
+    columnCount = sheet.UsedRange.Columns.Count
+    While findColumnLabel = 0 And i <= columnCount
+        cellValue = sheet.Cells(1, i)
+        If cellValue = label Then
+            findColumnLabel = i
+        Else
+            i = i + 1
+        End If
+    Wend
+End Function
+
+Function tryFindColumnLabel(sheet, label, ByRef cNum, Optional rowNum = 1)
+    cNum = findColumnLabel(sheet, label, rowNum)
+    If cNum < 1 Then
+        MsgBox "Failed to find column label: " & label & " on sheet: " & sheet.Name
+    Else
+        tryFindColumnLabel = True
+    End If
+End Function
+
+Function getHighestRowArrayIndex(sheet, arr, column)
+    highest = -1
+    arrLen = arrLength(arr)
+    highestArrIndex = -1
+    For i = 0 To arrLen - 1 Step 1
+        arrRow = arr(i)
+        If arrRow > 0 Then
+            num = sheet.Cells(arrRow, column)
+            If num > highest Then
+                highest = num
+                getHighestRowArrayIndex = i
+                highestArrIndex = i
+            End If
+        End If
+    Next
+    
+    If highestArrIndex < 0 Then
+        getHighestRowArrayIndex = 0
+    End If
+End Function
+
+Function removeArrayIndex(arr, index)
+    arr(index) = -1
+End Function
+
+Function Contains(mainString, findString)
+    Contains = InStr(1, LCase(mainString), LCase(findString))
+End Function
+
+Function findRange(itemToFind, rangeLook, Optional rangeResult = "", Optional columbOffset = 0, Optional rowOffset = 0)
+    Application.Volatile
+    For a = 1 To rangeLook.Areas.Count
+        Set rangeTemplook = rangeLook.Areas(a)
+        If Not (rangeResult = "") Then
+            Set rangeTempResult = rangeResult.Areas(a)
+        End If
+        For c = 1 To rangeTemplook.Count
+            If itemToFind = rangeTemplook(c) Then
+                If columbOffset <> 0 Or rowOffset <> 0 Then
+                    findRange = rangeTemplook(c).Offset(columbOffset, rowOffset)
+                Else
+                    findRange = rangeTempResult(c)
+                End If
+                Exit Function
+            End If
+        Next
+    Next
+    findRange = "NOT FOUND"
+End Function
+
+Function toLetter(number)
+    If number > 0 Then
+        alphabet = Array("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z")
+        temp = number
+        temp = temp - 1
+        toLetter = alphabet(temp Mod 26)
+        temp = temp \ 26
+        While temp > 0
+            temp = temp - 1
+            toLetter = alphabet(temp Mod 26) & toLetter
+            temp = temp \ 26
+        Wend
+    End If
+End Function
+
+Function toRCString(r, c)
+    toRCString = toLetter(c) & r
+End Function
+
+Function toRangeString(r1, c1, r2, c2)
+    toRangeString = toRCString(r1, c1) & ":" & toRCString(r2, c2)
+End Function
+
+Function toRowRangeString(r, c1, c2)
+    toRowRangeString = toRangeString(r, c1, r, c2)
+End Function
+
+Function toColumnRangeString(r1, r2, c)
+    toColumnRangeString = toRangeString(r1, c, r2, c)
+End Function
+
+Function wkstExists(wkstName)
+    wkstExists = False
+    For Each inst In Worksheets
+        If inst.Name = wkstName Then
+            wkstExists = True
+            Exit For
+        End If
+    Next
+End Function
+
+Function wkbkExists(wkbkName)
+    wkbkExists = False
+    For Each inst In Workbooks
+        If inst.Name = wkbkName Then
+            wkbkExists = True
+            Exit For
+        End If
+    Next
+End Function
+
+Sub UnhideAll()
+    ActiveSheet.Rows().Hidden = False
+End Sub
+
+Function GetColor(num) '0 through 47
+    subtractArr = Array(0, 100, 150, 200, 255)
+    arrIndex = num \ 12 + 1
+    subtract = subtractArr(arrIndex)
+    baseValue = 255 - subtract
+    m = num Mod 12 + 1
+    r = m Mod 3
+    m = m \ 3
+    g = m Mod 3
+    m = m \ 3
+    b = m
+    GetColor = RGB(baseValue + (r * subtract) \ 2, baseValue + (g * subtract) \ 2, baseValue + (b * subtract) \ 2)
+End Function
+
+Function AddToArr(arr, newValue)
+    l = ArrLen(arr)
+    ReDim Preserve arr(l + 1)
+    arr(l) = newValue
+End Function
+
+Function RoundUpNum(num)
+    d = Round(num)
+    If num > d Then
+        RoundUpNum = d + 1
+    Else
+        RoundUpNum = d
+    End If
+End Function
