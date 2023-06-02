@@ -626,3 +626,30 @@ Function RoundUpNum(num)
         RoundUpNum = d
     End If
 End Function
+
+Function getWordsFromStr(s)
+    Dim tempArr() As String
+    w = 0
+    blank = True
+    startNum = 1
+    For i = 1 To Len(s) Step 1
+        If blank Then
+            If Mid(s, i, 1) = " " Then
+            Else
+                startNum = i
+                blank = False
+            End If
+        Else
+            If Mid(s, i, 1) = " " Then
+                ReDim Preserve tempArr(w)
+                tempArr(w) = Mid(s, startNum, i - startNum)
+                w = w + 1
+                blank = True
+            End If
+        End If
+    Next
+    ReDim Preserve tempArr(w)
+    tempArr(w) = Mid(s, startNum, i - startNum)
+    w = w + 1
+    getWordsFromStr = tempArr
+End Function
