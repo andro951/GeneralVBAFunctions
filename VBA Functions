@@ -653,3 +653,22 @@ Function getWordsFromStr(s)
     w = w + 1
     getWordsFromStr = tempArr
 End Function
+
+Function AllBoarders(sht, rStart, cStart, Optional rEnd = -1, Optional cEnd = -1)
+    If rEnd < 1 Then
+        rEnd = rStart
+    End If
+    If cEnd < 1 Then
+        cEnd = cStart
+    End If
+    For r = rStart To rEnd Step 1
+        For c = cStart To cEnd Step 1
+            With sht.Cells(r, c)
+                .Borders(xlEdgeLeft).LineStyle = xlContinuous
+                .Borders(xlEdgeRight).LineStyle = xlContinuous
+                .Borders(xlEdgeTop).LineStyle = xlContinuous
+                .Borders(xlEdgeBottom).LineStyle = xlContinuous
+            End With
+        Next
+    Next
+End Function
