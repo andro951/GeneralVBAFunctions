@@ -612,12 +612,6 @@ Function GetColor(num) '0 through 47
     GetColor = RGB(baseValue + (r * subtract) \ 2, baseValue + (g * subtract) \ 2, baseValue + (b * subtract) \ 2)
 End Function
 
-Function AddToArr(arr, newValue)
-    l = ArrLen(arr)
-    ReDim Preserve arr(l + 1)
-    arr(l) = newValue
-End Function
-
 Function RoundUpNum(num)
     d = Round(num)
     If num > d Then
