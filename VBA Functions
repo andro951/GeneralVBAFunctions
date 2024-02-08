@@ -29,7 +29,7 @@ End Function
 Function SheetExists(shtName, Optional ByRef sheetNum = 0)
     numberOfSheets = ThisWorkbook.Sheets.Count
     For sheetNum = 1 To numberOfSheets Step 1
-        If ThisWorkbook.Sheets(sheetNum).name = shtName Then
+        If ThisWorkbook.Sheets(sheetNum).Name = shtName Then
             SheetExists = True
             Exit Function
         End If
@@ -57,9 +57,9 @@ End Function
 Function GetOrMakeNewSheet(shtName, Optional clearContents = False)
     sheetNum = 0
     If Not (SheetExists(shtName, sheetNum)) Then
-        ThisWorkbook.Sheets.Add After:=ThisWorkbook.Sheets(sheetNum)
+        ThisWorkbook.Sheets.Add after:=ThisWorkbook.Sheets(sheetNum)
         sheetNum = sheetNum + 1
-        ThisWorkbook.Sheets(sheetNum).name = shtName
+        ThisWorkbook.Sheets(sheetNum).Name = shtName
         Set GetOrMakeNewSheet = ThisWorkbook.Sheets(sheetNum)
     Else
         Set GetOrMakeNewSheet = ThisWorkbook.Sheets(sheetNum)
@@ -67,6 +67,26 @@ Function GetOrMakeNewSheet(shtName, Optional clearContents = False)
             GetOrMakeNewSheet.Cells.clearContents
         End If
     End If
+End Function
+
+Function CreateNewSheet(wb As Workbook, shtName As String)
+    i = 0
+    created = False
+    shtNameAndNumber = shtName
+    While Not (created)
+        If i > 0 Then
+            shtNameAndNumber = shtName & " (" & CStr(i) & ")"
+        End If
+        If Not (SheetExists(shtNameAndNumber, sheetNum)) Then
+            wb.Sheets.Add before:=wb.Sheets(1)
+            Set sht = wb.Sheets(1)
+            sht.Name = shtNameAndNumber
+            Set CreateNewSheet = wb.Sheets(1)
+            created = True
+        Else
+            i = i + 1
+        End If
+    Wend
 End Function
 
 Function TryGetIndexOf(arr, val, ByRef index)
@@ -245,8 +265,8 @@ Function MakeBackup(filePath)
     backupFolderPath = folderPath & "backups\"
     'MsgBox backUpFolderPath
     CheckOrMakeFolder (backupFolderPath)
-    Filename = GetFileNameFromPath(filePath)
-    backupFilePath = backupFolderPath & Filename
+    fileName = GetFileNameFromPath(filePath)
+    backupFilePath = backupFolderPath & fileName
     backupFilePathDateTime = GetTodayBackupFilePath(backupFilePath)
     On Error GoTo copyFailed
     FileCopy filePath, backupFilePathDateTime
@@ -270,7 +290,7 @@ Function CheckOrMakeFolder(filePath)
     CheckOrMakeFolder = folderExisted
 End Function
 
-Function OpenOrFind(filePath, wb, Optional readOnly = False)
+Function OpenOrFind(filePath As String, ByRef wb As Workbook, Optional readOnly = False)
     sheetIsOpen = False
     OpenOrFind = False
     wkbkName = GetFileNameFromPath(filePath)
@@ -278,6 +298,7 @@ Function OpenOrFind(filePath, wb, Optional readOnly = False)
         'MsgBox "wkbk.Name: " & wkbk.Name
         If wkbk.Name = wkbkName Then
             Set wb = wkbk
+            
             wkbkIsopen = True
             OpenOrFind = wkbkIsopen
             Exit For
@@ -315,9 +336,9 @@ Function OpenOrFindFolder(folderPath)
 End Function
 
 Function GetFileNameFromPath(filePath, Optional includeFileType = True)
-    s = HalfString(filePath, FindString(filePath, "\"))
+    s = HalfString(filePath, findString(filePath, "\"))
     If Not (includeFileType) Then
-        s = HalfString(s, FindString(s, "."), False)
+        s = HalfString(s, findString(s, "."), False)
     End If
     GetFileNameFromPath = s
 End Function
@@ -325,7 +346,7 @@ End Function
 Function GetFolderFromPath(filePath, Optional numberOfFolders = 1)
     s = filePath
     For i = 1 To numberOfFolders Step 1
-        s = HalfString(s, FindString(s, "\"), False)
+        s = HalfString(s, findString(s, "\"), False)
     Next
     GetFolderFromPath = s & "\"
 End Function
@@ -369,23 +390,23 @@ Function HalfString(s, point, Optional after = True)
 End Function
 
 Function AddToFileName(filePath, addString)
-    point = FindString(filePath, ".")
+    point = findString(filePath, ".")
     newFilePath = Insert(filePath, point, addString)
     AddToFileName = newFilePath
 End Function
 
-Function FindString(s, stringToFind)
+Function findString(s, stringToFind)
     s2Length = Len(stringToFind)
     sLength = Len(s)
     For i = sLength - s2Length + 1 To 1 Step -1
         matchString = Mid(s, i, s2Length)
         If matchString = stringToFind Then
-            FindString = i
+            findString = i
             'MsgBox "wkbkName: " & wkbkName
             Exit Function
         End If
     Next
-    FindString = 0
+    findString = 0
 End Function
 
 Function GetTodayBackupFilePath(filePath)
@@ -419,7 +440,7 @@ End Sub
 Function getDate(dateInput)
     mAbrs = Array("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
     Dim dS As String
-    ms = mAbrs(Month(dateInput) - 1)
+    mS = mAbrs(Month(dateInput) - 1)
     d = Day(dateInput)
     If d < 10 Then
         dS = 0 & d
@@ -427,16 +448,37 @@ Function getDate(dateInput)
         dS = d
     End If
     yS = Mid(CStr(Year(dateInput)), 3, 2)
-    getDate = dS + ms + yS
+    getDate = dS + mS + yS
+End Function
+
+Function getDateFromString(dateString)
+    If IsDate(dateString) Then
+        getDateFromString = CDate(dateString)
+        Exit Function
+    End If
+    
+    mAbrs = Array("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+    d = CInt(Mid(dateString, 1, 2))
+    m = 1
+    mS = Mid(dateString, 3, 3)
+    For Each mString In mAbrs
+        If mS = mString Then
+            Exit For
+        Else
+            m = m + 1
+        End If
+    Next
+    y = 2000 + CInt(Mid(dateString, 6, 2))
+    getDateFromString = DateSerial(y, m, d)
 End Function
 
 'Folder_Functions /\
 
 Function getMonth(dateInput)
     mAbrs = Array("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
-    ms = mAbrs(Month(dateInput) - 1)
+    mS = mAbrs(Month(dateInput) - 1)
     yS = Mid(CStr(Year(dateInput)), 3, 2)
-    getMonth = ms + yS
+    getMonth = mS + yS
 End Function
 
 Function getMonthYear(dateInput)
@@ -501,9 +543,9 @@ End Function
 
 Function getHighestRowArrayIndex(sheet, arr, column)
     highest = -1
-    arrLen = arrLength(arr)
+    ArrLen = arrLength(arr)
     highestArrIndex = -1
-    For i = 0 To arrLen - 1 Step 1
+    For i = 0 To ArrLen - 1 Step 1
         arrRow = arr(i)
         If arrRow > 0 Then
             num = sheet.Cells(arrRow, column)
@@ -673,7 +715,17 @@ Function AllBoarders(sht, rStart, cStart, Optional rEnd = -1, Optional cEnd = -1
     Next
 End Function
 
+Function StartsWith(s As String, startString As String)
+    StartsWith = False
+    sLength = Len(s)
+    startStringLength = Len(startString)
+    If sLength >= startStringLength Then
+        StartsWith = Mid(s, startStringLength) = endString
+    End If
+End Function
+
 Function EndsWith(s As String, endString As String)
+    EndsWith = False
     sLength = Len(s)
     endStringLength = Len(endString)
     If sLength >= endStringLength Then
