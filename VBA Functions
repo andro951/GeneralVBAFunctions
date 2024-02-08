@@ -270,19 +270,25 @@ Function CheckOrMakeFolder(filePath)
     CheckOrMakeFolder = folderExisted
 End Function
 
-Function OpenOrFind(filePath)
+Function OpenOrFind(filePath, wb, Optional readOnly = False)
     sheetIsOpen = False
+    OpenOrFind = False
+    wkbkName = GetFileNameFromPath(filePath)
     For Each wkbk In Workbooks
         'MsgBox "wkbk.Name: " & wkbk.Name
-        wkbkname = GetFileNameFromPath(filePath)
-        If wkbk.Name = wkbkname Then
-            Set OpenOrFind = wkbk
-            wkbkIsOpen = True
+        If wkbk.Name = wkbkName Then
+            Set wb = wkbk
+            wkbkIsopen = True
+            OpenOrFind = wkbkIsopen
             Exit For
         End If
     Next
-    If Not (wkbkIsOpen) Then
-        Set OpenOrFind = Workbooks.Open(filePath)
+    If Not (wkbkIsopen) Then
+        If readOnly Then
+            Set wb = Workbooks.Open(filePath, True, True)
+        Else
+            Set wb = Workbooks.Open(filePath)
+        End If
     End If
 End Function
 
