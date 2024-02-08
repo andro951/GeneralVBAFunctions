@@ -666,3 +666,33 @@ Function AllBoarders(sht, rStart, cStart, Optional rEnd = -1, Optional cEnd = -1
         Next
     Next
 End Function
+
+Function EndsWith(s As String, endString As String)
+    sLength = Len(s)
+    endStringLength = Len(endString)
+    If sLength >= endStringLength Then
+        EndsWith = Mid(s, sLength - endStringLength + 1, endStringLength) = endString
+    End If
+End Function
+
+Function FindRowLabel(ByRef r, c, label, sht)
+    usedRows = sht.UsedRange.Rows.Count
+    proficiencyRowFound = False
+    While r <= usedRows And Not (proficiencyRowFound)
+        If sht.Cells(r, c) = label Then
+            proficiencyRowFound = True
+        Else
+            r = r + 1
+        End If
+    Wend
+    FindRowLabel = proficiencyRowFound
+End Function
+
+Function PrintToFile(s, fileName)
+    filePath = CurrentProject.Path & "\" & fileName & ".txt"
+    file = FreeFile
+    Open filePath For Append As file
+    'Open filePath For Output As file
+    Print #file, s
+    Close file
+End Function
